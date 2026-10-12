@@ -1,0 +1,244 @@
+{
+  "$schema": "https://spec.opt2.tealbrick.com/manifest.schema.json",
+  "schema": "tealbrick.miniapp/2",
+  "id": "sample-gate",
+  "name": "Sample Gate",
+  "summary": "Sample Gate keeps short notes and gates calls to Sample Caller with before, context and after hooks.",
+  "version": "0.1.0",
+  "sdkMajor": 1,
+  "publisher": {
+    "name": "Teal Brick opt2 samples"
+  },
+  "source": {
+    "repo": "https://github.com/Martin-Atrin/opt2-tealbrick-samples",
+    "license": "MIT"
+  },
+  "icon": {
+    "svgPath": "M4 5h16v14H4z M8 9h8 M8 13h8 M8 17h5",
+    "viewBox": "0 0 24 24"
+  },
+  "discovery": {
+    "category": "productivity",
+    "intents": [
+      "write a note",
+      "list my notes",
+      "gate calls of another app"
+    ],
+    "keywords": [
+      "notes",
+      "hooks",
+      "gate"
+    ]
+  },
+  "runtime": {
+    "build": {
+      "context": "sample-gate",
+      "dockerfile": "sample-gate/Dockerfile"
+    },
+    "port": 8080,
+    "healthPath": "/tb/v1/health",
+    "resources": {
+      "cpu": 0.25,
+      "memoryMb": 256
+    },
+    "volumes": [
+      {
+        "id": "data",
+        "mountPath": "/data",
+        "sizeGb": 1,
+        "purpose": "data"
+      },
+      {
+        "id": "backup",
+        "mountPath": "/backup",
+        "sizeGb": 2,
+        "purpose": "backup"
+      }
+    ]
+  },
+  "operations": [
+    {
+      "id": "gate_note_write",
+      "title": "Write note",
+      "description": "Store a short note. Agents and companion apps can write notes.",
+      "input": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "text"
+        ],
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        }
+      },
+      "output": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "text",
+          "createdBy",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        }
+      },
+      "crud": [
+        "create"
+      ],
+      "effect": "write",
+      "idempotency": "required",
+      "receipt": true,
+      "audience": "agent"
+    },
+    {
+      "id": "gate_notes_list",
+      "title": "List notes",
+      "description": "List the newest notes, from agents and from companion apps.",
+      "input": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        }
+      },
+      "output": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "notes"
+        ],
+        "properties": {
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "text",
+                "createdBy",
+                "createdAt"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                },
+                "createdBy": {
+                  "type": "string"
+                },
+                "createdAt": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "crud": [
+        "read"
+      ],
+      "effect": "read",
+      "idempotency": "none",
+      "receipt": false,
+      "audience": "agent"
+    }
+  ],
+  "hooks": [
+    {
+      "id": "gate_forbidden",
+      "title": "Refuse forbidden text",
+      "phase": "before",
+      "order": 10,
+      "match": {
+        "products": [
+          "sample-caller"
+        ],
+        "operations": [
+          "caller_send"
+        ]
+      }
+    },
+    {
+      "id": "gate_timeout",
+      "title": "Slow check (timeout probe)",
+      "phase": "before",
+      "order": 20,
+      "match": {
+        "products": [
+          "sample-caller"
+        ],
+        "operations": [
+          "caller_send"
+        ]
+      },
+      "timeoutMs": 2000
+    },
+    {
+      "id": "gate_tag",
+      "title": "Tag checked calls",
+      "phase": "context",
+      "order": 10,
+      "match": {
+        "products": [
+          "sample-caller"
+        ],
+        "operations": [
+          "caller_send"
+        ]
+      }
+    },
+    {
+      "id": "gate_redact",
+      "title": "Redact secret",
+      "phase": "after",
+      "order": 10,
+      "match": {
+        "products": [
+          "sample-caller"
+        ],
+        "operations": [
+          "caller_send"
+        ]
+      }
+    }
+  ],
+  "skills": [
+    {
+      "id": "use-sample-gate",
+      "title": "How to use Sample Gate",
+      "file": "skills/use-sample-gate/SKILL.md"
+    }
+  ],
+  "backups": {
+    "schedule": "30 2 * * *",
+    "retain": 7
+  },
+  "ui": {
+    "launchPath": "/",
+    "configurePath": "/configure"
+  }
+}

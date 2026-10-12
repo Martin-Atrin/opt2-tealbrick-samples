@@ -1,6 +1,23 @@
 {
-  "$schema": "https://raw.githubusercontent.com/Martin-Atrin/opt2-tealbrick-platform/ci-v7/ci/tealbrick-ci.schema.json",
+  "$schema": "https://raw.githubusercontent.com/Martin-Atrin/opt2-tealbrick-platform/ci-v8/ci/tealbrick-ci.schema.json",
   "kind": "miniapp",
   "paths": ["sample-gate", "sample-caller"],
-  "images": []
+  "images": [
+    {
+      "name": "opt2-tealbrick-samples-gate",
+      "product": "sample-gate",
+      "kind": "app",
+      "context": "sample-gate",
+      "dockerfile": "sample-gate/Dockerfile",
+      "manifest": "sample-gate/tealbrick.manifest.json"
+    },
+    {
+      "name": "opt2-tealbrick-samples-caller",
+      "product": "sample-caller",
+      "kind": "app",
+      "context": "sample-caller",
+      "dockerfile": "sample-caller/Dockerfile",
+      "manifest": "sample-caller/tealbrick.manifest.json"
+    }
+  ]
 }

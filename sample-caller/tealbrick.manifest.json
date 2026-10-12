@@ -1,0 +1,133 @@
+{
+  "$schema": "https://spec.opt2.tealbrick.com/manifest.schema.json",
+  "schema": "tealbrick.miniapp/2",
+  "id": "sample-caller",
+  "name": "Sample Caller",
+  "summary": "Sample Caller sends a text, shows the hook context it received and writes the text as a note in Sample Gate.",
+  "version": "0.1.0",
+  "sdkMajor": 1,
+  "publisher": {
+    "name": "Teal Brick opt2 samples"
+  },
+  "source": {
+    "repo": "https://github.com/Martin-Atrin/opt2-tealbrick-samples",
+    "license": "MIT"
+  },
+  "icon": {
+    "svgPath": "M4 5h16v14H4z M8 9h8 M8 13h8 M8 17h5",
+    "viewBox": "0 0 24 24"
+  },
+  "discovery": {
+    "category": "productivity",
+    "intents": [
+      "send a text through the gate",
+      "write a note in another app"
+    ],
+    "keywords": [
+      "send",
+      "companion",
+      "hooks"
+    ]
+  },
+  "runtime": {
+    "build": {
+      "context": "sample-caller",
+      "dockerfile": "sample-caller/Dockerfile"
+    },
+    "port": 8080,
+    "healthPath": "/tb/v1/health",
+    "resources": {
+      "cpu": 0.25,
+      "memoryMb": 256
+    },
+    "volumes": [
+      {
+        "id": "data",
+        "mountPath": "/data",
+        "sizeGb": 1,
+        "purpose": "data"
+      },
+      {
+        "id": "backup",
+        "mountPath": "/backup",
+        "sizeGb": 2,
+        "purpose": "backup"
+      }
+    ]
+  },
+  "operations": [
+    {
+      "id": "caller_send",
+      "title": "Send text",
+      "description": "Send a text: the call returns the hook context it received and the result of writing the text as a note in the companion app.",
+      "input": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "text"
+        ],
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        }
+      },
+      "output": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "text",
+          "context",
+          "companion"
+        ],
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "context": {
+            "type": "object"
+          },
+          "companion": {
+            "type": "object"
+          }
+        }
+      },
+      "crud": [
+        "create"
+      ],
+      "effect": "write",
+      "idempotency": "required",
+      "receipt": true,
+      "audience": "agent"
+    }
+  ],
+  "companions": [
+    {
+      "product": "sample-gate",
+      "operations": [
+        "gate_note_write"
+      ],
+      "crud": [
+        "create"
+      ],
+      "purpose": "Writes each sent text as a note in Sample Gate."
+    }
+  ],
+  "skills": [
+    {
+      "id": "use-sample-caller",
+      "title": "How to use Sample Caller",
+      "file": "skills/use-sample-caller/SKILL.md"
+    }
+  ],
+  "backups": {
+    "schedule": "30 2 * * *",
+    "retain": 7
+  },
+  "ui": {
+    "launchPath": "/",
+    "configurePath": "/configure"
+  }
+}
