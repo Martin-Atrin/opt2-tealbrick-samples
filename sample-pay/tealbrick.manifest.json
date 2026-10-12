@@ -1,0 +1,200 @@
+{
+  "$schema": "https://spec.opt2.tealbrick.com/manifest.schema.json",
+  "schema": "tealbrick.miniapp/2",
+  "id": "sample-pay",
+  "name": "Sample Pay",
+  "summary": "Sample Pay records pretend payments for QA; no money moves. QA fixture — dev channel only, never in the default catalog.",
+  "description": "Test fixture: records a pretend payment; no money moves.\n\nQA fixture — dev channel only, never in the default catalog. It exists so QA can check live that money operations are always held and never adoptable (`draft_ref_money` at device approve, filtered at lookup).",
+  "version": "0.2.0-dev.1",
+  "sdkMajor": 1,
+  "publisher": {
+    "name": "Teal Brick opt2 samples"
+  },
+  "source": {
+    "repo": "https://github.com/Martin-Atrin/opt2-tealbrick-samples",
+    "license": "MIT"
+  },
+  "icon": {
+    "svgPath": "M3 6h18v12H3z M3 10h18 M7 15h4",
+    "viewBox": "0 0 24 24"
+  },
+  "discovery": {
+    "category": "developer",
+    "intents": [
+      "record a test payment",
+      "list test payments"
+    ],
+    "keywords": [
+      "fixture",
+      "qa",
+      "test payment"
+    ]
+  },
+  "runtime": {
+    "build": {
+      "context": "sample-pay",
+      "dockerfile": "sample-pay/Dockerfile"
+    },
+    "port": 8080,
+    "healthPath": "/tb/v1/health",
+    "resources": {
+      "cpu": 0.25,
+      "memoryMb": 256
+    },
+    "volumes": [
+      {
+        "id": "data",
+        "mountPath": "/data",
+        "sizeGb": 1,
+        "purpose": "data"
+      },
+      {
+        "id": "backup",
+        "mountPath": "/backup",
+        "sizeGb": 2,
+        "purpose": "backup"
+      }
+    ]
+  },
+  "operations": [
+    {
+      "id": "pay_test",
+      "title": "Record test payment",
+      "description": "Test fixture: records a pretend payment; no money moves. Always held for the owner (money).",
+      "input": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "amountCents",
+          "memo"
+        ],
+        "properties": {
+          "amountCents": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "memo": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        }
+      },
+      "output": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "amountCents",
+          "memo",
+          "createdBy",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "amountCents": {
+            "type": "integer"
+          },
+          "memo": {
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        }
+      },
+      "crud": [
+        "create"
+      ],
+      "effect": "money",
+      "holdFamily": "money",
+      "idempotency": "required",
+      "receipt": true,
+      "audience": "agent"
+    },
+    {
+      "id": "pay_list",
+      "title": "List test payments",
+      "description": "Test fixture: list the newest pretend payments (nothing was ever paid).",
+      "input": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        }
+      },
+      "output": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "payments"
+        ],
+        "properties": {
+          "payments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "amountCents",
+                "memo",
+                "createdBy",
+                "createdAt"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "amountCents": {
+                  "type": "integer"
+                },
+                "memo": {
+                  "type": "string"
+                },
+                "createdBy": {
+                  "type": "string"
+                },
+                "createdAt": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "crud": [
+        "read"
+      ],
+      "effect": "read",
+      "idempotency": "none",
+      "receipt": false,
+      "audience": "agent"
+    }
+  ],
+  "skills": [
+    {
+      "id": "use-sample-pay",
+      "title": "How to use Sample Pay",
+      "file": "skills/use-sample-pay/SKILL.md"
+    }
+  ],
+  "backups": {
+    "schedule": "30 2 * * *",
+    "retain": 7
+  },
+  "ui": {
+    "launchPath": "/",
+    "configurePath": "/configure"
+  }
+}

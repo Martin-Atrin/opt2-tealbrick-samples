@@ -3,9 +3,12 @@
   "schema": "tealbrick.miniapp/2",
   "id": "sample-gate",
   "name": "Sample Gate",
-  "summary": "Sample Gate keeps short notes and gates calls to Sample Caller with before, context and after hooks.",
-  "version": "0.1.1",
+  "summary": "Sample Gate keeps short notes, gates calls to Sample Caller with before, context and after hooks, and lists the pending approvals of all apps.",
+  "version": "0.2.0-dev.1",
   "sdkMajor": 1,
+  "requires": {
+    "bridge": "0.1.17"
+  },
   "publisher": {
     "name": "Teal Brick opt2 samples"
   },
@@ -22,12 +25,14 @@
     "intents": [
       "write a note",
       "list my notes",
-      "gate calls of another app"
+      "gate calls of another app",
+      "see the pending approvals of all apps"
     ],
     "keywords": [
       "notes",
       "hooks",
-      "gate"
+      "gate",
+      "approvals"
     ]
   },
   "runtime": {
@@ -165,6 +170,126 @@
       "idempotency": "none",
       "receipt": false,
       "audience": "agent"
+    },
+    {
+      "id": "gate_holds_overview",
+      "title": "Pending approvals of all apps",
+      "description": "For the owner: list the calls that wait for approval in every app that granted Sample Gate access (summaries only, never payloads), with one refusal entry per app that did not.",
+      "input": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "products": {
+            "type": "array",
+            "maxItems": 32,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{1,31}$"
+            }
+          }
+        }
+      },
+      "output": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "targets",
+          "items",
+          "refused"
+        ],
+        "properties": {
+          "targets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "product",
+                "id",
+                "op",
+                "family",
+                "reason",
+                "heldBy",
+                "decidePath",
+                "openUrl",
+                "createdAt"
+              ],
+              "properties": {
+                "product": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "op": {
+                  "type": "string"
+                },
+                "family": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string"
+                },
+                "heldBy": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "decidePath": {
+                  "type": "string"
+                },
+                "openUrl": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "createdAt": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "refused": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "product",
+                "code",
+                "message"
+              ],
+              "properties": {
+                "product": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "crud": [
+        "read"
+      ],
+      "effect": "read",
+      "idempotency": "none",
+      "receipt": false,
+      "audience": "person"
     }
   ],
   "hooks": [
@@ -173,6 +298,20 @@
       "title": "Refuse forbidden text",
       "phase": "before",
       "order": 10,
+      "match": {
+        "products": [
+          "sample-caller"
+        ],
+        "operations": [
+          "caller_send"
+        ]
+      }
+    },
+    {
+      "id": "gate_hold",
+      "title": "Hold for owner review",
+      "phase": "before",
+      "order": 15,
       "match": {
         "products": [
           "sample-caller"
@@ -224,6 +363,18 @@
           "caller_send"
         ]
       }
+    }
+  ],
+  "companions": [
+    {
+      "product": "*",
+      "operations": [
+        "tb.holds_pending"
+      ],
+      "crud": [
+        "read"
+      ],
+      "purpose": "Show the pending approvals of all apps"
     }
   ],
   "skills": [

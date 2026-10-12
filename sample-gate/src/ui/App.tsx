@@ -1,25 +1,34 @@
 // App pages over the SDK client hooks (holds, agents, session) inside the ONE app shell, <AppShell> from
-// @opt2-tealbrick/ui (SDK-API §14). Holds are decided here, one call at a time (C8).
-import { useAgents, useHolds, useSession } from "@opt2-tealbrick/miniapp-sdk/client";
+// @opt2-tealbrick/ui (SDK-API §14). Holds are decided here, one call at a time (C8). Spine T9: the "All approvals"
+// page shows the pending approvals of all apps (person op gate_holds_overview, summaries only).
+import { callOp, useAgents, useHolds, useSession } from "@opt2-tealbrick/miniapp-sdk/client";
 import { AppShell, Button, Notice, STANDARD_PAGES, Tag } from "@opt2-tealbrick/ui";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 const NAME = "Sample Gate";
 
 /** Pages this app serves, by shell page id → path under the base `/a/sample-gate/` (manifest `ui.launchPath`, `ui.configurePath`). */
-const PATHS: Record<string, string> = { holds: "./", agents: "./configure" };
-const PAGES = STANDARD_PAGES.filter((p) => p.id in PATHS);
-const pageOf = (pathname: string) => (pathname.replace(/\/+$/, "").endsWith("/configure") ? "agents" : "holds");
+const PATHS: Record<string, string> = { holds: "./", overview: "./approvals", agents: "./configure" };
+const PAGES = [...STANDARD_PAGES.filter((p) => p.id in PATHS), { id: "overview", label: "All approvals" }];
+const pageOf = (pathname: string) => {
+  const p = pathname.replace(/\/+$/, "");
+  return p.endsWith("/configure") ? "agents" : p.endsWith("/approvals") ? "overview" : "holds";
+};
+/** SDK 0.1.13 (G4): `tb.holds_pending` decidePath `/holds/<id>` opens here (Portal launch ticket with path); show that hold. */
+const holdOf = (pathname: string) => /\/holds\/(hld_[0-9A-HJKMNP-TV-Z]{26})\/?$/.exec(pathname)?.[1] ?? null;
 
-function Holds() {
-  const { holds, loading, decide } = useHolds({ status: "held" });
+function Holds({ only }: { only: string | null }) {
+  const { holds: all, loading, decide } = useHolds({ status: "held" });
   if (loading) return <p>Loading holds.</p>;
-  if (holds.length === 0) return <p>No calls wait for your approval.</p>;
+  const holds = only ? all.filter((h) => h.id === only) : all;
+  if (holds.length === 0) return <p>{only ? "This approval is no longer waiting." : "No calls wait for your approval."}</p>;
   return (
     <ul>
       {holds.map((h) => (
         <li key={h.id}>
           <strong>{h.caller.name}</strong> {h.summary} <Tag tone="action">{h.op}</Tag>
+          {h.holdFamily ? <Tag>{h.holdFamily}</Tag> : null}
+          {h.heldBy ? <Tag>held by {h.heldBy}</Tag> : null}
           {h.view ? <pre>{h.view}</pre> : null}
           <Button variant="primary" onClick={() => void decide(h.id as Parameters<typeof decide>[0], "approve")}>
             Approve
@@ -28,6 +37,68 @@ function Holds() {
         </li>
       ))}
     </ul>
+  );
+}
+
+interface OverviewItem {
+  product: string;
+  id: string;
+  op: string;
+  family: string;
+  reason: string;
+  heldBy: string | null;
+  decidePath: string;
+  openUrl: string | null;
+  createdAt: string;
+}
+interface Overview {
+  targets: string[];
+  items: OverviewItem[];
+  refused: { product: string; code: string; message: string }[];
+}
+
+function AllApprovals() {
+  const [data, setData] = useState<Overview | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const load = useCallback(() => {
+    setError(null);
+    callOp<Overview>("gate_holds_overview", {})
+      .then(setData)
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)));
+  }, []);
+  useEffect(load, [load]);
+  if (error) return <Notice tone="action">The overview failed: {error}</Notice>;
+  if (!data) return <p>Loading the approvals of all apps.</p>;
+  return (
+    <>
+      <p>
+        <Button onClick={load}>Refresh</Button>
+      </p>
+      {data.refused.map((r) => (
+        <Notice key={r.product} tone="action">
+          {r.product === "*" ? "No app" : r.product}: {r.code}. {r.message}
+        </Notice>
+      ))}
+      {data.items.length === 0 ? (
+        <p>No calls wait for approval in the other apps.</p>
+      ) : (
+        <ul>
+          {data.items.map((h) => (
+            <li key={`${h.product}/${h.id}`}>
+              <strong>{h.product}</strong> <Tag tone="action">{h.op}</Tag> <Tag>{h.family}</Tag> {h.reason}
+              {h.heldBy ? <Tag>held by {h.heldBy}</Tag> : null}{" "}
+              {h.openUrl ? (
+                <a href={h.openUrl} target="_top" rel="noopener">
+                  Open to decide
+                </a>
+              ) : (
+                <code>{h.decidePath}</code>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
   );
 }
 
@@ -79,7 +150,7 @@ export function App() {
         ) : null
       }
     >
-      {status === "signed_out" ? null : page === "agents" ? <Agents /> : <Holds />}
+      {status === "signed_out" ? null : page === "agents" ? <Agents /> : page === "overview" ? <AllApprovals /> : <Holds only={holdOf(globalThis.location.pathname)} />}
     </AppShell>
   );
 }

@@ -1,16 +1,19 @@
 // Smoke test: the app boots on the SDK (manifest, handler set and migrations accepted), serves the derived routes,
-// and the send flow echoes the hook context and returns the companion result. Agent calls and the companion call
+// the send flow echoes the hook context and returns the companion result, and the spine T10 op `caller_dm` is an
+// outward first_contact op that writes exactly one outbox row per run. Agent calls, holds and the companion call
 // through a bridge are covered by `pnpm conformance`.
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import { test } from "node:test";
-import { manifestDigest, validateManifest } from "@opt2-tealbrick/manifest";
-import { type CompanionResult, defineApp, type Json, type OpContext, startApp, TbError } from "@opt2-tealbrick/miniapp-sdk";
+import { DEFAULT_HELD_FAMILIES, manifestDigest, validateManifest } from "@opt2-tealbrick/manifest";
+import { type CompanionResult, type Db, defineApp, type Json, type OpContext, startApp, TbError } from "@opt2-tealbrick/miniapp-sdk";
 import { MANIFEST_DIGEST, OP } from "#kit";
-import { definition, handlers, manifest } from "../src/app.ts";
+import { definition, handlers, manifest, migrationsDir } from "../src/app.ts";
+import { countDms, dmHoldView } from "../src/dm.ts";
 import { companionTarget, send } from "../src/send.ts";
 
 async function freePort(): Promise<number> {
@@ -99,4 +102,53 @@ test("a refused companion call fails the send (no partial output)", async () => 
     },
   };
   await assert.rejects(send("x", deps, companionTarget(manifest)), { code: "hook_denied" });
+});
+
+// ── spine T10 (C105): first contact held on a default card ──
+/** In-memory database with this app's migrations applied, shaped like the SDK's Db. */
+function migratedDb(): Db {
+  const raw = new DatabaseSync(":memory:");
+  const db = { exec: (sql: string) => raw.exec(sql), prepare: (sql: string) => raw.prepare(sql), transaction: <T>(fn: () => T) => fn() } as unknown as Db;
+  for (const f of readdirSync(migrationsDir).filter((n) => n.endsWith(".sql")).sort()) db.exec(readFileSync(join(migrationsDir, f), "utf8"));
+  return db;
+}
+
+test("T10: caller_dm is an outward first_contact op with receipt and required idempotency (held on a default card)", () => {
+  const op = manifest.operations.find((o) => o.id === OP.callerDm);
+  assert.ok(op);
+  assert.deepEqual(
+    { effect: op.effect, holdFamily: op.holdFamily, receipt: op.receipt, idempotency: op.idempotency, audience: op.audience, crud: op.crud },
+    { effect: "outward", holdFamily: "first_contact", receipt: true, idempotency: "required", audience: "agent", crud: ["create"] },
+  );
+  assert.ok((DEFAULT_HELD_FAMILIES as readonly string[]).includes("first_contact"), "a new card holds it without policy edits");
+  assert.deepEqual(op.input?.required, ["to", "text"]);
+  const outward = manifest.operations.filter((o) => o.effect === "outward");
+  assert.ok(outward.every((o) => o.holdFamily), "every outward op declares a family (C107)");
+  assert.ok(manifest.operations.some((o) => o.id === OP.callerSend), "caller_send stays");
+});
+
+test("T10: caller_dm writes exactly one outbox row per run and returns {sent, id}", async () => {
+  const db = migratedDb();
+  const agent = { type: "agent", id: "agt_01J0000000000000000000000A", name: "Agent A", mode: "free" };
+  const ctx = { db, caller: agent } as unknown as OpContext;
+  assert.equal(countDms(db), 0, "nothing sent before the run (a held call never reaches run)");
+  const out = (await handlers.caller_dm.run({ to: "new-contact@example.test", text: "hello" }, ctx)) as { sent: boolean; id: string };
+  assert.equal(out.sent, true);
+  assert.match(out.id, /^dm_[0-9A-HJKMNP-TV-Z]{26}$/);
+  assert.deepEqual(Object.keys(out).sort(), ["id", "sent"]);
+  assert.equal(countDms(db, "new-contact@example.test"), 1, "exactly one row");
+  const row = db.prepare("SELECT recipient, text, sent_by FROM outbox WHERE id = ?").get(out.id) as Record<string, unknown>;
+  assert.deepEqual({ ...row }, { recipient: "new-contact@example.test", text: "hello", sent_by: agent.id });
+  const again = (await handlers.caller_dm.run({ to: "new-contact@example.test", text: "hello" }, ctx)) as { id: string };
+  assert.notEqual(again.id, out.id);
+  assert.equal(countDms(db, "new-contact@example.test"), 2, "one more run = one more row (the SDK replays a repeated idempotency key without run)");
+});
+
+test("T10: receipt summary names the recipient only; the owner's hold view shows the message", () => {
+  const spec = handlers.caller_dm as { redact?: (i: unknown) => string; holdView?: (i: unknown) => string };
+  const input = { to: "new-contact@example.test", text: "the message body" };
+  assert.equal(spec.redact?.(input), "Direct message to new-contact@example.test");
+  assert.ok(!spec.redact?.(input).includes("message body"));
+  assert.equal(spec.holdView?.(input), dmHoldView(input));
+  assert.match(dmHoldView(input), /new-contact@example\.test[\s\S]*the message body/);
 });

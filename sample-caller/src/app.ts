@@ -5,7 +5,8 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { type AppDefinition, defineApp, type HandlerSpec, type SdkAppDefinition } from "@opt2-tealbrick/miniapp-sdk";
-import { type CallerSendInput, type CallerSendOutput, OP, type OpId } from "#kit";
+import { type CallerDmInput, type CallerDmOutput, type CallerSendInput, type CallerSendOutput, OP, type OpId } from "#kit";
+import { dmHoldView, sendDm } from "./dm.ts";
 import { companionTarget, send } from "./send.ts";
 
 export const manifest = JSON.parse(readFileSync(new URL("../tealbrick.manifest.json", import.meta.url), "utf8")) as AppDefinition["manifest"];
@@ -24,6 +25,17 @@ export const handlers = {
     async run(input, ctx) {
       return (await send(input.text, ctx, target)) as CallerSendOutput;
     },
+    // Spine T8: a hold from Sample Gate's before hook (G1) shows this text to the owner on the holds page.
+    holdView: (input) => `Send text:\n\n${input.text}`,
+  }),
+  // Spine T10 (C105): outward, holdFamily first_contact (manifest). The SDK holds it on a default card before `run`;
+  // after the owner approves, the retry with the same input runs once and writes exactly one outbox row.
+  [OP.callerDm]: op<CallerDmInput, CallerDmOutput>({
+    async run(input, ctx) {
+      return sendDm(ctx.db, { to: input.to, text: input.text, sentBy: ctx.caller.id });
+    },
+    redact: (input) => `Direct message to ${input.to}`.slice(0, 280),
+    holdView: dmHoldView,
   }),
 } satisfies Record<OpId, HandlerSpec>;
 

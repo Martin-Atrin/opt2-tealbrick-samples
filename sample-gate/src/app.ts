@@ -4,10 +4,20 @@
 // `tb-gen kit` generates from the manifest (`#kit`, built by `node --run kit`); none is written by hand.
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { type AppDefinition, defineApp, type HandlerSpec, type SdkAppDefinition } from "@opt2-tealbrick/miniapp-sdk";
-import { type GateNotesListInput, type GateNotesListOutput, type GateNoteWriteInput, type GateNoteWriteOutput, OP, type OpId } from "#kit";
+import { type AppDefinition, defineApp, type HandlerSpec, type SdkAppDefinition, type SdkOpContext } from "@opt2-tealbrick/miniapp-sdk";
+import {
+  type GateHoldsOverviewInput,
+  type GateHoldsOverviewOutput,
+  type GateNotesListInput,
+  type GateNotesListOutput,
+  type GateNoteWriteInput,
+  type GateNoteWriteOutput,
+  OP,
+  type OpId,
+} from "#kit";
 import { makeHooks } from "./hooks.ts";
 import { listNotes, writeNote } from "./notes.ts";
+import { holdsOverview } from "./overview.ts";
 
 export const manifest = JSON.parse(readFileSync(new URL("../tealbrick.manifest.json", import.meta.url), "utf8")) as AppDefinition["manifest"];
 export const migrationsDir = fileURLToPath(new URL("../migrations", import.meta.url));
@@ -28,6 +38,17 @@ export const handlers = {
   [OP.gateNotesList]: op<GateNotesListInput, GateNotesListOutput>({
     async run(input, ctx) {
       return { notes: listNotes(ctx.db, input.limit ?? 50) };
+    },
+  }),
+  // Person op (owner, app UI). Spine T9: the wildcard companion's per-app grants exist only after the owner's consent;
+  // the SDK's person-op ctx has the app's companion grants (app-initiated calls, no parentCall).
+  [OP.gateHoldsOverview]: op<GateHoldsOverviewInput, GateHoldsOverviewOutput>({
+    async run(input, ctx) {
+      const c = ctx as SdkOpContext;
+      return (await holdsOverview(
+        { self: manifest.id, companionTargets: () => c.companionTargets(), callApp: (p, o, i) => c.callApp(p, o, i), ownerLink: (path) => c.ownerLink(path) },
+        input.products,
+      )) as GateHoldsOverviewOutput;
     },
   }),
 } satisfies Record<OpId, HandlerSpec>;

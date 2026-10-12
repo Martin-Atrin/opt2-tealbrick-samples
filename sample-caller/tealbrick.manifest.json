@@ -3,8 +3,8 @@
   "schema": "tealbrick.miniapp/2",
   "id": "sample-caller",
   "name": "Sample Caller",
-  "summary": "Sample Caller sends a text, shows the hook context it received and writes the text as a note in Sample Gate.",
-  "version": "0.1.1",
+  "summary": "Sample Caller sends a text through the gate, writes it as a note in Sample Gate, and sends direct messages to new contacts (held as first contact).",
+  "version": "0.2.0-dev.1",
   "sdkMajor": 1,
   "publisher": {
     "name": "Teal Brick opt2 samples"
@@ -21,12 +21,14 @@
     "category": "productivity",
     "intents": [
       "send a text through the gate",
-      "write a note in another app"
+      "write a note in another app",
+      "send a direct message to a new contact"
     ],
     "keywords": [
       "send",
       "companion",
-      "hooks"
+      "hooks",
+      "message"
     ]
   },
   "runtime": {
@@ -98,6 +100,55 @@
         "create"
       ],
       "effect": "write",
+      "idempotency": "required",
+      "receipt": true,
+      "audience": "agent"
+    },
+    {
+      "id": "caller_dm",
+      "title": "Send direct message",
+      "description": "Send a direct message to a contact. A first message to a contact is held until the owner approves it (first contact). Test app: the message is stored in the app's outbox, no network call.",
+      "input": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "to",
+          "text"
+        ],
+        "properties": {
+          "to": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        }
+      },
+      "output": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sent",
+          "id"
+        ],
+        "properties": {
+          "sent": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          }
+        }
+      },
+      "crud": [
+        "create"
+      ],
+      "effect": "outward",
+      "holdFamily": "first_contact",
       "idempotency": "required",
       "receipt": true,
       "audience": "agent"

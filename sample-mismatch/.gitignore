@@ -1,0 +1,11 @@
+node_modules/
+dist/
+gen/
+.tb-ci/
+.data/
+*.tgz
+.env
+.env.*
+!.env.example
+.DS_Store
+served.manifest.json
