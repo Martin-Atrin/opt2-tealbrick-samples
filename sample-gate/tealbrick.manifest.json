@@ -4,7 +4,7 @@
   "id": "sample-gate",
   "name": "Sample Gate",
   "summary": "Sample Gate keeps short notes and gates calls to Sample Caller with before, context and after hooks.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "sdkMajor": 1,
   "publisher": {
     "name": "Teal Brick opt2 samples"

@@ -4,7 +4,7 @@
   "id": "sample-caller",
   "name": "Sample Caller",
   "summary": "Sample Caller sends a text, shows the hook context it received and writes the text as a note in Sample Gate.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "sdkMajor": 1,
   "publisher": {
     "name": "Teal Brick opt2 samples"
