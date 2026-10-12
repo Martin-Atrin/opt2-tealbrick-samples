@@ -1,7 +1,10 @@
 {
   "$schema": "https://raw.githubusercontent.com/Martin-Atrin/opt2-tealbrick-platform/ci-v9/ci/tealbrick-ci.schema.json",
   "kind": "miniapp",
-  "paths": ["sample-gate", "sample-caller"],
+  "paths": [
+    "sample-gate",
+    "sample-caller"
+  ],
   "images": [
     {
       "name": "opt2-tealbrick-samples-gate",
@@ -19,5 +22,6 @@
       "dockerfile": "sample-caller/Dockerfile",
       "manifest": "sample-caller/tealbrick.manifest.json"
     }
-  ]
+  ],
+  "postgres": true
 }
