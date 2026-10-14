@@ -4,7 +4,7 @@
   "id": "sample-gate",
   "name": "Sample Gate",
   "summary": "Sample Gate keeps short notes, gates calls to Sample Caller with before, context and after hooks, and lists the pending approvals of all apps.",
-  "version": "0.2.0-dev.3",
+  "version": "0.2.0-dev.4",
   "sdkMajor": 1,
   "requires": {
     "bridge": "0.1.17"

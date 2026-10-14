@@ -4,7 +4,7 @@
   "id": "sample-caller",
   "name": "Sample Caller",
   "summary": "Sample Caller sends a text through the gate, writes it as a note in Sample Gate, and sends direct messages to new contacts (held as first contact).",
-  "version": "0.2.0-dev.3",
+  "version": "0.2.0-dev.4",
   "sdkMajor": 1,
   "publisher": {
     "name": "Teal Brick opt2 samples"
