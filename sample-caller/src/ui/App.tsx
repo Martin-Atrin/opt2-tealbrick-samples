@@ -1,90 +1,63 @@
-// App pages over the SDK client hooks (holds, agents, session) inside the ONE app shell, <AppShell> from
-// @opt2-tealbrick/ui (SDK-API §14). Holds are decided here, one call at a time (C8).
-import { useAgents, useHolds, useSession } from "@opt2-tealbrick/miniapp-sdk/client";
+// App pages over the SDK client hooks (session) inside the ONE app shell, <AppShell> from @opt2-tealbrick/ui
+// (SDK-API §14). Dev-only spine-test fixture: it has no mockup and its id has no kit colour, so it gets the template
+// look (neutral header with the Tealbrick lockup) and the shared standard pages from ./standard.tsx.
+// Holds are decided on the Holds page, one call at a time (C8).
+import { useSession } from "@opt2-tealbrick/miniapp-sdk/client";
 import { AppShell, Button, Notice, STANDARD_PAGES, Tag } from "@opt2-tealbrick/ui";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { AgentsPage, HoldsPage, portalHref, standardRoutes, useHoldList, useNav } from "./standard.tsx";
 
 const NAME = "Sample Caller";
 
-/** Pages this app serves, by shell page id → path under the base `/a/sample-caller/` (manifest `ui.launchPath`, `ui.configurePath`). */
-const PATHS: Record<string, string> = { holds: "./", agents: "./configure" };
-const PAGES = STANDARD_PAGES.filter((p) => p.id in PATHS);
-const pageOf = (pathname: string) => (pathname.replace(/\/+$/, "").endsWith("/configure") ? "agents" : "holds");
-/** SDK 0.1.13 (G4): `tb.holds_pending` decidePath `/holds/<id>` opens here (Portal launch ticket with path); show that hold. */
-const holdOf = (pathname: string) => /\/holds\/(hld_[0-9A-HJKMNP-TV-Z]{26})\/?$/.exec(pathname)?.[1] ?? null;
-
-function Holds({ only }: { only: string | null }) {
-  const { holds: all, loading, decide } = useHolds({ status: "held" });
-  if (loading) return <p>Loading holds.</p>;
-  const holds = only ? all.filter((h) => h.id === only) : all;
-  if (holds.length === 0) return <p>{only ? "This approval is no longer waiting." : "No calls wait for your approval."}</p>;
-  return (
-    <ul>
-      {holds.map((h) => (
-        <li key={h.id}>
-          <strong>{h.caller.name}</strong> {h.summary} <Tag tone="action">{h.op}</Tag>
-          {h.holdFamily ? <Tag>{h.holdFamily}</Tag> : null}
-          {h.heldBy ? <Tag>held by {h.heldBy}</Tag> : null}
-          {h.view ? <pre>{h.view}</pre> : null}
-          <Button variant="primary" onClick={() => void decide(h.id as Parameters<typeof decide>[0], "approve")}>
-            Approve
-          </Button>{" "}
-          <Button onClick={() => void decide(h.id as Parameters<typeof decide>[0], "deny")}>Deny</Button>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function Agents() {
-  const { agents, loading } = useAgents();
-  if (loading) return <p>Loading agents.</p>;
-  if (agents.length === 0) return <p>No agents are connected to this app.</p>;
-  return (
-    <ul>
-      {agents.map((a) => (
-        <li key={a.id}>
-          {a.name} <Tag>{a.mode}</Tag>
-        </li>
-      ))}
-    </ul>
-  );
-}
+/** Shell page id → path under the base `/a/sample-caller/` (manifest `ui.launchPath` = holds, `ui.configurePath` = agents). */
+const { holds: HOLDS_PATH, agents: AGENTS_PATH } = standardRoutes();
+const ROUTES = { holds: HOLDS_PATH, agents: AGENTS_PATH };
+const PAGES = STANDARD_PAGES.filter((p) => p.id in ROUTES);
 
 export function App() {
   const { principal, status, signOut } = useSession();
-  const [page, setPage] = useState(() => pageOf(globalThis.location.pathname));
-  useEffect(() => {
-    const onPop = () => setPage(pageOf(globalThis.location.pathname));
-    globalThis.addEventListener("popstate", onPop);
-    return () => globalThis.removeEventListener("popstate", onPop);
-  }, []);
-  const navigate = (id: string) => {
-    globalThis.history.pushState(null, "", PATHS[id]);
-    setPage(id);
-  };
+  const nav = useNav(ROUTES, "holds");
+  const holds = useHoldList();
+  const [notice, setNotice] = useState<string | null>(null);
+  const [portal] = useState(portalHref);
+  const pages = PAGES.map((p) => (p.id === "holds" ? { ...p, badge: holds.holds?.length || null } : p));
+  const signedIn = status === "signed_in" && principal;
   return (
     <AppShell
       title={NAME}
-      pages={PAGES}
-      current={page}
-      onNavigate={navigate}
+      portalHref={portal}
+      pages={pages}
+      current={nav.page}
+      onNavigate={nav.go}
+      pageHref={nav.href}
       actions={
-        status === "signed_in" && principal ? (
-          <Button onClick={() => void signOut()}>Sign out</Button>
+        signedIn ? (
+          <Button
+            size="sm"
+            onClick={() => {
+              setNotice(null);
+              signOut().catch(() => setNotice("Couldn’t sign you out. Check your connection and try again."));
+            }}
+          >
+            Sign out
+          </Button>
         ) : (
-          <Tag tone={status === "loading" ? "progress" : "action"}>{status === "loading" ? "Loading" : "Signed out"}</Tag>
+          <Tag status={status === "loading" ? "busy" : "needs-you"}>{status === "loading" ? "Loading" : "Signed out"}</Tag>
         )
       }
       banner={
         status === "signed_out" ? (
-          <Notice tone="action" role="alert">
+          <Notice tone="needs-you" role="alert">
             Open this app from Portal to sign in.
+          </Notice>
+        ) : notice ? (
+          <Notice tone="needs-you" role="alert">
+            {notice}
           </Notice>
         ) : null
       }
     >
-      {status === "signed_out" ? null : page === "agents" ? <Agents /> : <Holds only={holdOf(globalThis.location.pathname)} />}
+      {!signedIn ? null : nav.page === "agents" ? <AgentsPage /> : <HoldsPage list={holds} only={nav.hold} empty="No calls wait for your approval." />}
     </AppShell>
   );
 }

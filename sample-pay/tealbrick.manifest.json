@@ -5,14 +5,14 @@
   "name": "Sample Pay",
   "summary": "Sample Pay records pretend payments for QA; no money moves. QA fixture — dev channel only, never in the default catalog.",
   "description": "Test fixture: records a pretend payment; no money moves.\n\nQA fixture — dev channel only, never in the default catalog. It exists so QA can check live that money operations are always held and never adoptable (`draft_ref_money` at device approve, filtered at lookup).",
-  "version": "0.2.0-dev.1",
+  "version": "0.2.0-dev.2",
   "sdkMajor": 1,
   "publisher": {
     "name": "Teal Brick opt2 samples"
   },
   "source": {
     "repo": "https://github.com/Martin-Atrin/opt2-tealbrick-samples",
-    "license": "MIT"
+    "license": "Apache-2.0"
   },
   "icon": {
     "svgPath": "M3 6h18v12H3z M3 10h18 M7 15h4",

@@ -4,7 +4,7 @@
   "id": "sample-gate",
   "name": "Sample Gate",
   "summary": "Sample Gate keeps short notes, gates calls to Sample Caller with before, context and after hooks, and lists the pending approvals of all apps.",
-  "version": "0.2.0-dev.1",
+  "version": "0.2.0-dev.2",
   "sdkMajor": 1,
   "requires": {
     "bridge": "0.1.17"
@@ -14,7 +14,7 @@
   },
   "source": {
     "repo": "https://github.com/Martin-Atrin/opt2-tealbrick-samples",
-    "license": "MIT"
+    "license": "Apache-2.0"
   },
   "icon": {
     "svgPath": "M4 5h16v14H4z M8 9h8 M8 13h8 M8 17h5",

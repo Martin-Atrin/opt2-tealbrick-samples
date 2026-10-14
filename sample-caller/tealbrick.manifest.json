@@ -4,14 +4,14 @@
   "id": "sample-caller",
   "name": "Sample Caller",
   "summary": "Sample Caller sends a text through the gate, writes it as a note in Sample Gate, and sends direct messages to new contacts (held as first contact).",
-  "version": "0.2.0-dev.1",
+  "version": "0.2.0-dev.2",
   "sdkMajor": 1,
   "publisher": {
     "name": "Teal Brick opt2 samples"
   },
   "source": {
     "repo": "https://github.com/Martin-Atrin/opt2-tealbrick-samples",
-    "license": "MIT"
+    "license": "Apache-2.0"
   },
   "icon": {
     "svgPath": "M4 5h16v14H4z M8 9h8 M8 13h8 M8 17h5",

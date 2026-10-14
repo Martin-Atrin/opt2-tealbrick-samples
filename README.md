@@ -1,6 +1,6 @@
 # opt2-tealbrick-samples
 
-Teal Brick opt2: sample miniapps for the spine test (sample-gate, sample-caller).
+Teal Brick opt2: sample miniapps for the spine test (sample-gate, sample-caller, sample-pay, sample-mismatch).
 
 **Status: opt2 build (clean-room v2 of Teal Brick), work in progress.** This repository is part of the opt2 build and lives under `Martin-Atrin` during the build; it moves to the Teal Brick organisation as one clean commit when opt2 is released. It is not the current production system.
 
@@ -61,6 +61,10 @@ GitHub Actions release workflow `.github/workflows/opt2-release.yml`): one `.woo
 root; `tealbrick-ci.json` lists both app folders in `paths` and one image per app
 (`opt2-tealbrick-samples-gate`, `opt2-tealbrick-samples-caller`). Every stage (install, typecheck, lint, test,
 conformance, build, gen, images) runs per app folder. One `v<semver>` tag releases all four apps (equal manifest versions). CAUTION: tb-ci picks the channel from the version (`-` pre-release → `dev`, else `stable`), so a plain `v0.2.0` tag would also publish the two fixtures on `stable`. Release the fixtures only with a pre-release version, or keep them out of `tealbrick-ci.json` for a stable tag.
+
+## Licence
+
+Apache-2.0 (`LICENSE`, `NOTICE`). The upstream licences of what the apps bundle are in `THIRD_PARTY_NOTICES.md`.
 
 ## Language
 

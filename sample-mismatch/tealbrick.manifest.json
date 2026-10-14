@@ -5,14 +5,14 @@
   "name": "Sample Mismatch",
   "summary": "Sample Mismatch serves a manifest that differs from its release record. QA fixture — dev channel only, never in the default catalog.",
   "description": "QA fixture: deliberately serves a manifest different from its release record.\n\nQA fixture — dev channel only, never in the default catalog. At run time the app appends \" (runtime)\" to `summary`, so its reported manifest digest differs from the release record and the bridge refuses it (`manifest_mismatch`).",
-  "version": "0.2.0-dev.1",
+  "version": "0.2.0-dev.2",
   "sdkMajor": 1,
   "publisher": {
     "name": "Teal Brick opt2 samples"
   },
   "source": {
     "repo": "https://github.com/Martin-Atrin/opt2-tealbrick-samples",
-    "license": "MIT"
+    "license": "Apache-2.0"
   },
   "icon": {
     "svgPath": "M4 4h16v16H4z M8 8l8 8 M16 8l-8 8",
