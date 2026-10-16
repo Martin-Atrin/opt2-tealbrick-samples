@@ -12,7 +12,7 @@ Do not put secrets, tokens, keys, customer data or personal data in this reposit
 - No API keys, tokens, passwords, private keys, deployment secrets, `.env` files or connection strings. Use `.env.example` with placeholder values only.
 - Runtime secrets live in the deployment platform (Railway variables, Woodpecker secrets) and are copied between services without printing them.
 - No personal names, private agent configurations or customer data.
-- Every CI run starts with a secret scan (gitleaks, a step in `.woodpecker/ci.yaml`). GitHub secret scanning with push protection is enabled. Optional local guard: `pre-commit install`.
+- Every CI run starts with a secret scan (gitleaks, a step in `.woodpecker/ci.yaml`). GitHub secret scanning and push protection are not enabled on this repository, so the CI scan is the guard. Optional local guard: `pre-commit install` (`.pre-commit-config.yaml` runs gitleaks).
 - If a secret is committed anyway: rotate it first, then remove it from history.
 
 ## What this repo is and is not
@@ -39,7 +39,7 @@ pnpm test && pnpm conformance
 | `sample-mismatch/` | QA fixture, dev channel only, never in the default catalog: deliberately serves a manifest different from its release record (bridge refuses it, `manifest_mismatch`) |
 | `tealbrick-ci.json` | One `miniapp` config with the four app folders in `paths` and four images |
 
-Each app is a full project of its own (package.json, pnpm-lock.yaml with tarball integrity, Dockerfile, manifest `tealbrick.manifest.json`, `src`, migrations, skills, tests, `conformance.start.ts`), scaffolded with `create-tealbrick-miniapp` 0.1.3 and kept on the conventions of 0.1.8. Product ids appear only as manifest data.
+Each app is a full project of its own (package.json, pnpm-lock.yaml with tarball integrity, Dockerfile, manifest `tealbrick.manifest.json`, `src`, migrations, skills, tests, `conformance.start.ts`), scaffolded with `create-tealbrick-miniapp` 0.1.3 and kept on the conventions of 0.1.8 (UNVERIFIED: no file in this repo records the scaffolder version). Product ids appear only as manifest data.
 
 ## Configuration
 
@@ -70,9 +70,9 @@ Deploy both apps in one workspace (bridge 0.1.17 or later; `sample-gate` declare
 
 ## CI and release
 
-Woodpecker CI with the shared opt2 pipeline template ci-v9.9 from `Tealbrick/opt2-tealbrick-platform` (`.woodpecker/ci.yaml`; images are published by the GitHub Actions release workflow `.github/workflows/opt2-release.yml`; both are generated copies, so do not edit them). `tealbrick-ci.json` lists the four app folders in `paths` and one image per app (`opt2-tealbrick-samples-gate`, `-caller`, `-pay`, `-mismatch`). Every stage (install, typecheck, lint, test, conformance, build, gen, images) runs per app folder.
+Woodpecker CI with the shared opt2 pipeline template ci-v9.9 from `Tealbrick/opt2-tealbrick-platform` (`.woodpecker/ci.yaml`; images are published by the GitHub Actions release workflow `.github/workflows/opt2-release.yml`; both are generated copies, so do not edit them). `tealbrick-ci.json` lists the four app folders in `paths` and one image per app (`opt2-tealbrick-samples-gate`, `-caller`, `-pay`, `-mismatch`). The stages install, typecheck, lint, test, conformance, build and gen run in each app folder; `image-check` builds each declared image and never pushes.
 
-One `v<semver>` tag releases all four apps (the four manifest versions must be equal). The platform signer lists these four products in `DEV_ONLY_PRODUCTS`: every release of them goes to channel `dev` with `devOnly: true`, whatever the tag says, and a stable release of them is refused. Core never offers or deploys them on a stable workspace.
+One `v<semver>` tag releases all four apps (the four manifest versions must be equal). The platform signer (`ci/tb-ci.ts` in the platform repo) lists these four products, and `fleet`, in `DEV_ONLY_PRODUCTS`: every release of them goes to channel `dev` with `devOnly: true`, whatever the tag says, and a stable release of them is refused. Core never offers or deploys them on a stable workspace.
 
 ## Language
 
